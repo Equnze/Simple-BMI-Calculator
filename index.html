@@ -118,6 +118,16 @@
       margin-bottom: 1.1rem;
     }
 
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 0.85rem;
+    }
+
+    .field-grid .field-full {
+      grid-column: 1 / -1;
+    }
+
     .field label {
       display: block;
       font-size: 0.8rem;
@@ -197,22 +207,22 @@
       font-size: 1.05rem;
       font-weight: 700;
       color: #fff;
-      background: linear-gradient(135deg, var(--teal) 0%, var(--teal-deep) 100%);
+      background: #000;
       padding: 0.95rem 1.25rem;
       cursor: pointer;
-      box-shadow: 0 8px 20px rgba(13, 148, 136, 0.35);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
       transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
     }
 
     .calc-btn:hover {
-      filter: brightness(1.05);
-      box-shadow: 0 10px 24px rgba(13, 148, 136, 0.4);
+      filter: brightness(1.15);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
       transform: translateY(-1px);
     }
 
     .calc-btn:active {
       transform: translateY(1px);
-      box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     }
 
     .result {
@@ -315,6 +325,10 @@
         padding: 1.4rem 1.15rem 1.25rem;
       }
 
+      .field-grid {
+        grid-template-columns: 1fr;
+      }
+
       .bmi-value {
         font-size: 2.5rem;
       }
@@ -324,7 +338,7 @@
 <body>
   <main class="page">
     <h1 class="brand">BMI Check</h1>
-    <p class="tagline">Quick height and weight check with metric or imperial units.</p>
+    <p class="tagline">Quick personal BMI check with metric or imperial units.</p>
 
     <form class="panel" id="bmi-form" novalidate>
       <div class="units" role="group" aria-label="Unit system">
@@ -332,39 +346,88 @@
         <button type="button" id="unit-imperial" aria-pressed="false">Imperial</button>
       </div>
 
-      <div class="field">
-        <label for="height">Height</label>
-        <div class="field-row">
-          <input
-            type="number"
-            id="height"
-            name="height"
-            inputmode="decimal"
-            min="0"
-            step="any"
-            placeholder="170"
-            autocomplete="off"
-            required
-          />
-          <span class="unit-suffix" id="height-unit">cm</span>
+      <div class="field-grid">
+        <div class="field field-full">
+          <label for="name">Name</label>
+          <div class="field-row">
+            <input
+              type="text"
+              id="name"
+              name="name"
+              placeholder="Alex"
+              autocomplete="name"
+              maxlength="60"
+              required
+            />
+          </div>
         </div>
-      </div>
 
-      <div class="field">
-        <label for="weight">Weight</label>
-        <div class="field-row">
-          <input
-            type="number"
-            id="weight"
-            name="weight"
-            inputmode="decimal"
-            min="0"
-            step="any"
-            placeholder="70"
-            autocomplete="off"
-            required
-          />
-          <span class="unit-suffix" id="weight-unit">kg</span>
+        <div class="field">
+          <label for="age">Age</label>
+          <div class="field-row">
+            <input
+              type="number"
+              id="age"
+              name="age"
+              inputmode="numeric"
+              min="1"
+              max="120"
+              step="1"
+              placeholder="28"
+              autocomplete="off"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="race">Race</label>
+          <div class="field-row">
+            <input
+              type="text"
+              id="race"
+              name="race"
+              placeholder="Optional"
+              autocomplete="off"
+              maxlength="60"
+            />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="height">Height</label>
+          <div class="field-row">
+            <input
+              type="number"
+              id="height"
+              name="height"
+              inputmode="decimal"
+              min="0"
+              step="any"
+              placeholder="170"
+              autocomplete="off"
+              required
+            />
+            <span class="unit-suffix" id="height-unit">cm</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="weight">Weight</label>
+          <div class="field-row">
+            <input
+              type="number"
+              id="weight"
+              name="weight"
+              inputmode="decimal"
+              min="0"
+              step="any"
+              placeholder="70"
+              autocomplete="off"
+              required
+            />
+            <span class="unit-suffix" id="weight-unit">kg</span>
+          </div>
         </div>
       </div>
 
@@ -373,7 +436,7 @@
       <button type="submit" class="calc-btn">Calculate BMI</button>
 
       <div class="result" id="result" aria-live="polite" hidden>
-        <p class="result-label">Your BMI</p>
+        <p class="result-label" id="result-label">Your BMI</p>
         <p class="bmi-value" id="bmi-value">—</p>
         <p class="category" id="category"></p>
       </div>
@@ -385,6 +448,8 @@
   <script>
     (function () {
       const form = document.getElementById("bmi-form");
+      const nameInput = document.getElementById("name");
+      const ageInput = document.getElementById("age");
       const heightInput = document.getElementById("height");
       const weightInput = document.getElementById("weight");
       const heightUnit = document.getElementById("height-unit");
@@ -393,10 +458,13 @@
       const imperialBtn = document.getElementById("unit-imperial");
       const errorEl = document.getElementById("error");
       const resultEl = document.getElementById("result");
+      const resultLabelEl = document.getElementById("result-label");
       const bmiValueEl = document.getElementById("bmi-value");
       const categoryEl = document.getElementById("category");
 
       let isMetric = true;
+      const AGE_MIN = 1;
+      const AGE_MAX = 120;
 
       const CATEGORIES = [
         { max: 18.5, key: "underweight", label: "Underweight" },
@@ -459,8 +527,27 @@
       }
 
       function calculate() {
+        const name = nameInput.value.trim();
+        const age = parseInt(ageInput.value, 10);
         const height = parseFloat(heightInput.value);
         const weight = parseFloat(weightInput.value);
+
+        if (name === "") {
+          showError("Enter your name.");
+          nameInput.focus();
+          return;
+        }
+
+        if (
+          ageInput.value.trim() === "" ||
+          Number.isNaN(age) ||
+          age < AGE_MIN ||
+          age > AGE_MAX
+        ) {
+          showError("Enter an age between " + AGE_MIN + " and " + AGE_MAX + ".");
+          ageInput.focus();
+          return;
+        }
 
         if (
           heightInput.value.trim() === "" ||
@@ -495,6 +582,7 @@
         void resultEl.offsetWidth;
         resultEl.classList.add("visible", category.key);
 
+        resultLabelEl.textContent = name + ", your BMI is";
         bmiValueEl.classList.remove("pop");
         void bmiValueEl.offsetWidth;
         bmiValueEl.textContent = rounded.toFixed(1);
